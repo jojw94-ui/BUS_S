@@ -1,0 +1,16 @@
+# 비밀값
+.env
+.env.*
+!.env.example
+
+# Node / Expo
+node_modules/
+.expo/
+dist/
+*.apk
+*.aab
+
+# OS / 에디터
+.DS_Store
+Thumbs.db
+.vscode/

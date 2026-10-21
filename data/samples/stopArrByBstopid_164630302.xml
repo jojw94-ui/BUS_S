@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8" ?>
+
+
+<response>
+<header>
+<resultCode>00</resultCode>
+<resultMsg>NORMAL SERVICE</resultMsg>
+</header>
+<body>
+<items>
+<item>
+<arsno>05190</arsno>
+<bstopid>164630302</bstopid>
+<lineno>83</lineno>
+<nodenm>서면역.롯데호텔백화점</nodenm>
+<bstopidx>24</bstopidx>
+<carno1>4135</carno1>
+<min1>5</min1>
+<station1>3</station1>
+<lowplate1>1</lowplate1>
+<seat1>-1</seat1>
+<carno2>4152</carno2>
+<min2>11</min2>
+<station2>6</station2>
+<lowplate2>1</lowplate2>
+<seat2>-1</seat2>
+<gpsx>129.055780198774</gpsx>
+<gpsy>35.157856952035</gpsy>
+<bustype>일반버스</bustype>
+<lineid>5200083000</lineid>
+</item>
+</items>
+</body>
+</response>

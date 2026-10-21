@@ -1,0 +1,5 @@
+{
+  "name": "bus-s",
+  "private": true,
+  "workspaces": ["packages/*", "app"]
+}
