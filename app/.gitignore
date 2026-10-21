@@ -1,0 +1,19 @@
+# Expo
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+.metro-health-check*
+*.tsbuildinfo
+
+# 비밀값 (루트 .gitignore 에도 있음)
+.env
+.env.*
+!.env.example
+
+# 네이티브 빌드 산출물
+/ios
+/android
+.kotlin/
+*.jks
+*.keystore
