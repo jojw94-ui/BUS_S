@@ -44,4 +44,5 @@
 - 저장소 공개: https://github.com/jojw94-ui/BUS_S (`.env`·`app/android` 빌드 산출물은 제외, 커밋 기록에 API 키 없음 확인)
 - 웹 빌드 확인: `npx expo export --platform web` → 브라우저에서 정류장 검색이 실제 BIMS 데이터로 동작
   - 웹 빌드에는 `.env` 키가 JS 에 그대로 들어가므로 공개 배포 전에는 서버 프록시(또는 키 없는 빌드)가 필요
-- 바이브코딩 성과 전시관(kepco-vibe-exhibition.vercel.app)에 GitHub 링크로 등록
+- 웹 시연 영상(Loom, 1분 56초): https://www.loom.com/share/84128114ea9440f7a216f76dd8c2d6ea
+- 바이브코딩 성과 전시관(kepco-vibe-exhibition.vercel.app)에 영상·GitHub 링크로 등록
