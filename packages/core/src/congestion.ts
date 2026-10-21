@@ -138,9 +138,27 @@ export interface CongestionParams {
   config: RecommendConfig;
 }
 
+/**
+ * 프로필 값(시간대 동안 그 정류장을 지난 모든 버스의 승객 흐름 합)을 버스 1대 기준으로 환산.
+ * 시간대 동안 다니는 버스 수 ≈ slotMinutes / headway. 배차 간격을 모르면 null.
+ */
+export function perBusLoad(
+  slotTotal: number | null,
+  headway: number | null,
+  slotMinutes: number,
+): number | null {
+  if (slotTotal === null || headway === null || !(slotMinutes > 0)) return null;
+  return Math.round(((slotTotal * Math.min(headway, slotMinutes)) / slotMinutes) * 10) / 10;
+}
+
 export function estimateCongestion(p: CongestionParams): CongestionEstimate {
-  const baseline = baselineLoad(p.profile, p.route.no, p.stopSeq, p.now);
-  const ratio = gapRatio(p.buses, p.busIndex, headwayFor(p.route, p.now));
+  const headway = headwayFor(p.route, p.now);
+  const baseline = perBusLoad(
+    baselineLoad(p.profile, p.route.no, p.stopSeq, p.now),
+    headway,
+    p.profile?.slotMinutes ?? 0,
+  );
+  const ratio = gapRatio(p.buses, p.busIndex, headway);
   return {
     level: combineLevel(baseline, ratio, p.config),
     baseline,

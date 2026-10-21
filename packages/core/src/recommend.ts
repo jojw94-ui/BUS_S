@@ -145,13 +145,17 @@ export function recommend(input: RecommendInput): Recommendation {
     if (!segment.fromStopIds.includes(arrival.stopId)) continue;
     const route = routes[arrival.routeId];
     if (!route || !passesFilter(route, segment.routeFilter)) continue;
+    // 같은 노선·같은 출발 정류장에서는 가장 먼저 닿는 도착 정류장만 쓴다.
+    // (왕복 노선이 회차 후 반대편 도착 정류장을 다시 지나는 긴 경로를 후보에서 뺀다)
+    let nearest: PairResult | null = null;
     for (const toStopId of segment.toStopIds) {
       if (rideSeqs(route, arrival.stopId, toStopId, arrival.stopSeq) && arrival.buses.length > 0) {
         anyBus = true;
       }
       const pair = buildPair(arrival, route, toStopId, segment, input, config);
-      if (pair) pairs.push(pair);
+      if (pair && (!nearest || pair.first.rideStops < nearest.first.rideStops)) nearest = pair;
     }
+    if (nearest) pairs.push(nearest);
   }
 
   pairs.sort((a, b) => compareCandidates(a.first, b.first));

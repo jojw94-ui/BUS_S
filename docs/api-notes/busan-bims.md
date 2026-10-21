@@ -40,5 +40,5 @@
 - 왕복 노선은 회차 후 정류장도 이어서 나온다 → `bstopidx` 순서로 방향 판정
 
 ### busInfo
-`headway`, `headwaypeak`, `headwaynorm`, `headwayholi`(분), `firsttime`, `endtime`, `startpoint`, `endpoint`, `companyid`
+`buslinenum`(노선번호 — 요청 파라미터는 `lineno`), `headway`, `headwaypeak`, `headwaynorm`, `headwayholi`(분), `firsttime`, `endtime`, `startpoint`, `endpoint`, `companyid`
 - `lineno`는 부분일치 (83 → 183 등도 반환) → 정확히 일치하는 행만 사용

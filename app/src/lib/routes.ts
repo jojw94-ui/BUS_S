@@ -1,13 +1,20 @@
 // 추천 입력용 노선 정보 모으기.
-// TODO: data/static/routes.json 이 생기면 정적 데이터를 먼저 쓰고, 없는 노선만 API 로 채운다.
+// data/static/routes.json(정적)을 먼저 쓰고, 없는 노선(마을버스 등)만 API 로 채운다.
 import type { Route, RouteId, StopId } from '@bus-s/core';
+import routesJson from '../../../data/static/routes.json';
 import { getRoute } from '../api/bims';
+
+const staticRoutes: Record<RouteId, Route> = Object.fromEntries(
+  (routesJson as Route[]).map((r) => [r.id, r]),
+);
 
 /** 노선 여러 개를 병렬로 조회. 실패한 노선은 빠진다. */
 export async function loadRoutes(routeIds: RouteId[]): Promise<Record<RouteId, Route>> {
   const unique = [...new Set(routeIds.filter(Boolean))];
-  const results = await Promise.allSettled(unique.map((id) => getRoute(id)));
   const out: Record<RouteId, Route> = {};
+  for (const id of unique) if (staticRoutes[id]) out[id] = staticRoutes[id];
+  const missing = unique.filter((id) => !out[id]);
+  const results = await Promise.allSettled(missing.map((id) => getRoute(id)));
   results.forEach((r) => {
     if (r.status === 'fulfilled' && r.value) out[r.value.id] = r.value;
   });

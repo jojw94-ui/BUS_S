@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_RECOMMEND_CONFIG as CFG } from '../src/config';
 import {
+  perBusLoad,
   baselineLoad,
   combineLevel,
   estimateCongestion,
@@ -108,5 +109,19 @@ describe('혼잡 단계 결합', () => {
       config: CFG,
     });
     expect(est).toEqual({ level: 3, baseline: null, gapRatio: 1.8, estimated: true });
+  });
+});
+
+describe('perBusLoad — 30분 합계를 버스 1대 기준으로', () => {
+  it('합계 × 배차 / 30', () => {
+    expect(perBusLoad(300, 5, 30)).toBe(50);
+    expect(perBusLoad(263, 3, 30)).toBe(26.3);
+  });
+  it('배차가 시간대보다 길면 합계 그대로', () => {
+    expect(perBusLoad(40, 45, 30)).toBe(40);
+  });
+  it('배차·합계를 모르면 null', () => {
+    expect(perBusLoad(null, 5, 30)).toBeNull();
+    expect(perBusLoad(300, null, 30)).toBeNull();
   });
 });

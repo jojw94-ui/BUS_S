@@ -9,7 +9,8 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
-    "check:api": "tsx scripts/check-api.ts"
+    "check:api": "tsx scripts/check-api.ts",
+    "check:recommend": "tsx scripts/check-recommend.ts"
   },
   "dependencies": {
     "@bus-s/core": "*",

@@ -1,11 +1,10 @@
 // 근처 정류장 계산용 로컬 정류장 목록.
-// TODO: data/static/stops.json 이 생기면 아래 import 한 줄을 '../../../data/static/stops.json' 으로 바꾼다.
-//       지금은 data/samples 의 서면 일대 실제 응답으로 만든 임시 목록(26곳)이다 — scripts/make-sample-stops.mjs
+// 원본: data/static/stops.json (scripts/fetch-stops.mjs, 부산 전체 정류장)
 import type { Stop } from '@bus-s/core';
-import stopsJson from './stops.sample.json';
+import stopsJson from '../../../data/static/stops.json';
 import { distanceM } from '../lib/geo';
 
-export const LOCAL_STOPS_IS_SAMPLE = true;
+export const LOCAL_STOPS_IS_SAMPLE = false;
 export const localStops: Stop[] = stopsJson as Stop[];
 
 export interface NearbyStop {

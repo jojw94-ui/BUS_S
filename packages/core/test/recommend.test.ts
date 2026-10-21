@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { recommend } from '../src/recommend';
-import type { RecommendInput } from '../src/types';
+import type { RecommendInput, Route } from '../src/types';
 import { parseStopArrivals, stopArrXml } from './helpers/bims-xml';
 import {
   BUJEON_MARKET,
@@ -129,7 +129,8 @@ describe('recommend — 후보 없음', () => {
 describe('recommend — 전부 혼잡', () => {
   it('가장 덜 혼잡한 버스를 추천하고 이유에 표시', () => {
     // 평소 재차인원: 83번 24번째 50명(혼잡), 10번 10번째 70명(매우혼잡)
-    const profile = flatProfile({ '83': { '24': 50 }, '10': { '10': 70 } });
+    // 프로필은 30분 합계 → 대당 = 합계 × 배차 / 30 (83번 첨두 5분: 300→50, 10번 첨두 10분: 210→70)
+    const profile = flatProfile({ '83': { '24': 300 }, '10': { '10': 210 } });
     const r = recommend(
       input(
         arrItem(ROUTE_83, SEOMYEON_LOTTE, '05190', { carNo: '4135', min: 3 }) +
@@ -147,7 +148,7 @@ describe('recommend — 전부 혼잡', () => {
   });
 
   it('같은 혼잡 단계면 총 소요시간 순', () => {
-    const profile = flatProfile({ '83': { '24': 50 }, '10': { '10': 50 } });
+    const profile = flatProfile({ '83': { '24': 300 }, '10': { '10': 150 } });
     const r = recommend(
       input(
         arrItem(ROUTE_83, SEOMYEON_LOTTE, '05190', { carNo: '4135', min: 3 }) + // 7분
@@ -300,11 +301,38 @@ describe('recommend — 프로필 없음', () => {
     // 평소 50명(혼잡) + 앞차에 바짝 붙은 2번째 차(여유) → 보통
     const r = recommend(
       input(arrItem(ROUTE_83, SEOMYEON_LOTTE, '05190', { carNo: '4135', min: 2 }, { carNo: '4152', min: 3 }), {
-        profile: flatProfile({ '83': { '24': 50 } }),
+        profile: flatProfile({ '83': { '24': 300 } }),
         segment: segment({ walkMin: { [SEOMYEON_LOTTE]: 3 } }),
       }),
     );
     expect(r.best?.busIndex).toBe(1);
     expect(r.best?.congestion).toEqual({ level: 1, baseline: 50, gapRatio: 0.2, estimated: true });
+  });
+});
+
+describe('recommend — 왕복 노선의 반대편 도착 정류장', () => {
+  it('같은 노선·출발 정류장이면 가장 가까운 도착 정류장 하나만 후보', () => {
+    const route: Route = {
+      id: 'R1',
+      no: '1',
+      type: '일반버스',
+      stops: [
+        { stopId: 'A', seq: 1, name: '출발' },
+        { stopId: 'B1', seq: 2, name: '도착' },
+        { stopId: 'X', seq: 3, name: '회차' },
+        { stopId: 'B2', seq: 4, name: '도착' },
+      ],
+      headway: { peak: 10, normal: 10, holiday: 10 },
+      firstTime: '05:00',
+      lastTime: '23:00',
+    };
+    const r = recommend({
+      segment: { id: 's', name: 's', fromStopIds: ['A'], toStopIds: ['B2', 'B1'], routeFilter: [], schedule: null, maxWaitMin: 15, walkMin: {} },
+      arrivals: [{ stopId: 'A', routeId: 'R1', routeNo: '1', stopSeq: 1, buses: [{ carNo: 'c', etaMin: 3, stopsAway: 1, lowFloor: false }], fetchedAt: '' }],
+      routes: { R1: route },
+      profile: null,
+      now: new Date('2026-10-21T13:00:00+09:00'),
+    });
+    expect(r.candidates.map((c) => [c.toStopId, c.rideStops])).toEqual([['B1', 1]]);
   });
 });

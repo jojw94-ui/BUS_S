@@ -12,6 +12,7 @@ import { useAutoRefresh } from '../hooks/useAutoRefresh';
 import { openKakaoRoute } from '../lib/deeplink';
 import { recommend, usingCoreRecommend } from '../lib/recommend';
 import { loadRoutes } from '../lib/routes';
+import { congestionProfile } from '../data/profile';
 import { describeSchedule, findActiveSegment } from '../lib/schedule';
 
 const NEARBY = '__nearby__';
@@ -143,7 +144,7 @@ function SegmentView({
       const routes = await loadRoutes(routeIds);
       let rec: Recommendation;
       try {
-        rec = recommend({ segment, arrivals, routes, profile: null, now: new Date() });
+        rec = recommend({ segment, arrivals, routes, profile: congestionProfile, now: new Date() });
       } catch (e) {
         rec = { best: null, waitForNext: null, candidates: [], reason: `추천 계산 오류: ${(e as Error).message}` };
       }

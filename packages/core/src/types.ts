@@ -12,7 +12,7 @@ export type BusType = '일반버스' | '급행버스' | '마을버스' | '심야
 /** data/static/stops.json 의 원소 */
 export interface Stop {
   id: StopId;
-  /** ARS번호 (5자리) */
+  /** ARS번호 (5자리). 원본에 없는 정류장(전체의 약 절반)은 빈 문자열 */
   arsNo: string;
   name: string;
   lat: number;
@@ -37,7 +37,7 @@ export interface Route {
   type: BusType;
   /** 기점 → 종점 → (회차 후) 순서. 왕복 노선은 같은 정류장명이 두 번 나올 수 있으나 stopId는 다르다 */
   stops: RouteStop[];
-  /** 배차 간격(분) */
+  /** 배차 간격(분). 원본에 값이 없으면 0 — 0은 "모름"으로 취급한다 */
   headway: { peak: number; normal: number; holiday: number };
   firstTime: string; // "05:00"
   lastTime: string; // "22:20"
@@ -76,7 +76,11 @@ export interface CongestionProfile {
   slotMinutes: number;
   /** slot 0의 시작 시각 — "04:00" */
   firstSlot: string;
-  /** routeNo → stopSeq(문자열) → slot별 재차인원 추정치 배열 (길이 48) */
+  /**
+   * routeNo → stopSeq(문자열) → slot별 값 배열 (길이 48).
+   * 값은 버스 1대가 아니라 "그 시간대 동안 정류장을 지난 모든 버스의 승객 흐름 합"이다.
+   * core는 slotMinutes / 배차간격으로 나눠 버스 1대 기준으로 환산해 쓴다 (perBusLoad).
+   */
   routes: Record<string, Record<string, number[]>>;
 }
 
@@ -85,7 +89,7 @@ export type CongestionLevel = 0 | 1 | 2 | 3;
 
 export interface CongestionEstimate {
   level: CongestionLevel;
-  /** 평소 재차인원 추정치 (프로필 없으면 null) */
+  /** 버스 1대 기준 평소 재차인원 추정치 (프로필·배차간격 없으면 null) */
   baseline: number | null;
   /** 실제 간격 / 평소 배차 간격 (계산 불가면 null) */
   gapRatio: number | null;
