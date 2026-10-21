@@ -44,7 +44,8 @@ export function HomeScreen({
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        style={{ flexGrow: 0 }}
+        // flexShrink 0: 아래 세로 ScrollView 내용이 길면 이 줄이 높이 0으로 눌리는 문제 방지 (좁은 화면)
+        style={{ flexGrow: 0, flexShrink: 0 }}
         contentContainerStyle={{ padding: 12, paddingBottom: 4 }}
       >
         {segments.map((s) => (
@@ -66,13 +67,28 @@ export function HomeScreen({
           isAuto={segment.id === auto?.id}
         />
       ) : (
-        <NearbyView hasSegments={segments.length > 0} active={active} onGoSetup={onGoSetup} />
+        <NearbyView
+          hasSegments={segments.length > 0}
+          hasActiveSegment={auto !== null && auto !== undefined}
+          active={active}
+          onGoSetup={onGoSetup}
+        />
       )}
     </View>
   );
 }
 
-function NearbyView({ hasSegments, active, onGoSetup }: { hasSegments: boolean; active: boolean; onGoSetup: () => void }) {
+function NearbyView({
+  hasSegments,
+  hasActiveSegment,
+  active,
+  onGoSetup,
+}: {
+  hasSegments: boolean;
+  hasActiveSegment: boolean;
+  active: boolean;
+  onGoSetup: () => void;
+}) {
   const [stop, setStop] = useState<Stop | null>(null);
   return (
     <ScrollView contentContainerStyle={{ padding: 16, paddingTop: 8 }}>
@@ -88,12 +104,15 @@ function NearbyView({ hasSegments, active, onGoSetup }: { hasSegments: boolean; 
         </>
       ) : (
         <>
-          <Card>
-            <Muted>
-              {hasSegments ? '지금 시간대에 맞는 구간이 없습니다.' : '출퇴근 구간을 설정하면 앱을 열자마자 추천이 뜹니다.'}
-            </Muted>
-            <Button title="구간 설정하기" kind="plain" onPress={onGoSetup} style={{ marginTop: 8 }} />
-          </Card>
+          {/* 지금 시간대 구간이 있는데 사용자가 직접 '근처 정류장'을 고른 경우에는 안내를 띄우지 않는다 */}
+          {!hasActiveSegment && (
+            <Card>
+              <Muted>
+                {hasSegments ? '지금 시간대에 맞는 구간이 없습니다.' : '출퇴근 구간을 설정하면 앱을 열자마자 추천이 뜹니다.'}
+              </Muted>
+              <Button title="구간 설정하기" kind="plain" onPress={onGoSetup} style={{ marginTop: 8 }} />
+            </Card>
+          )}
           <Card>
             <NearbyStops onSelect={setStop} />
           </Card>
