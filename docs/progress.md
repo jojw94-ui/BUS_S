@@ -46,3 +46,7 @@
   - 웹 빌드에는 `.env` 키가 JS 에 그대로 들어가므로 공개 배포 전에는 서버 프록시(또는 키 없는 빌드)가 필요
 - 웹 시연 영상(Loom, 1분 56초): https://www.loom.com/share/84128114ea9440f7a216f76dd8c2d6ea
 - 바이브코딩 성과 전시관(kepco-vibe-exhibition.vercel.app)에 영상·GitHub 링크로 등록
+
+## 2026-10-21 — README
+- 저장소 첫 화면용 README: 앱 소개, 추천 기준, 혼잡도 추정 방식, 실행·키 발급·테스트·APK·정적 데이터 재생성 방법
+- GitHub 새 clone 으로 npm ci → core 테스트 54개 → 앱 타입 검사 → 웹 빌드까지 키 없이 통과 확인
