@@ -6,6 +6,7 @@ import { distanceM } from '../lib/geo';
 
 export const LOCAL_STOPS_IS_SAMPLE = false;
 export const localStops: Stop[] = stopsJson as Stop[];
+export const localStopsById: Record<string, Stop> = Object.fromEntries(localStops.map((s) => [s.id, s]));
 
 export interface NearbyStop {
   stop: Stop;

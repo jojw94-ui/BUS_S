@@ -1,6 +1,17 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
-import type { Arrival, Candidate, CommuteSegment, Recommendation, RouteId, Stop, StopId } from '@bus-s/core';
+import {
+  resolveDirection,
+  type Arrival,
+  type Candidate,
+  type CommuteSegment,
+  type Direction,
+  type DirectionResult,
+  type Recommendation,
+  type RouteId,
+  type Stop,
+  type StopId,
+} from '@bus-s/core';
 import { getStopArrivals, type StopArrivals } from '../api/bims';
 import { ArrivalList } from '../components/ArrivalList';
 import { CongestionBadge } from '../components/CongestionBadge';
@@ -9,6 +20,8 @@ import { StopDetail } from '../components/StopDetail';
 import { Button, Card, Chip, colors, ErrorText, Loading, Muted, SectionTitle } from '../components/ui';
 import { REFRESH_INTERVAL_MS } from '../config';
 import { useAutoRefresh } from '../hooks/useAutoRefresh';
+import { usePosition } from '../hooks/usePosition';
+import { localStops, localStopsById } from '../data/stops';
 import { openKakaoRoute } from '../lib/deeplink';
 import { recommend, usingCoreRecommend } from '../lib/recommend';
 import { loadRoutes } from '../lib/routes';
@@ -39,6 +52,21 @@ export function HomeScreen({
   const key = picked ?? auto?.id ?? NEARBY;
   const segment = segments.find((s) => s.id === key) ?? null;
 
+  // 출발·도착 자동 전환: 직접 고른 방향 > GPS > 시간대 > 오전/오후
+  const position = usePosition(active);
+  const [manualDir, setManualDir] = useState<Record<string, Direction>>({});
+  const manual = segment ? manualDir[segment.id] ?? null : null;
+  const resolved = useMemo(
+    () => (segment ? resolveDirection(segment, { now, stops: localStops, position, manual }) : null),
+    [segment, now, position, manual],
+  );
+  const toggleDirection = () => {
+    if (!segment || !resolved) return;
+    setManualDir((m) => ({ ...m, [segment.id]: resolved.direction === 'forward' ? 'reverse' : 'forward' }));
+  };
+  // 반대 방향 정류장(길 건너편 등)은 구간에 저장된 정류장 목록에 없으므로 전체 정류장에서 이름을 찾는다
+  const stopNames = useMemo(() => ({ ...localStopsById, ...knownStops }), [knownStops]);
+
   return (
     <View style={{ flex: 1 }}>
       <ScrollView
@@ -58,11 +86,14 @@ export function HomeScreen({
         ))}
         <Chip label="근처 정류장" active={key === NEARBY} onPress={() => setPicked(NEARBY)} />
       </ScrollView>
-      {segment ? (
+      {segment && resolved ? (
         <SegmentView
-          key={segment.id}
-          segment={segment}
-          knownStops={knownStops}
+          key={resolved.segment.id}
+          segment={resolved.segment}
+          baseSegment={segment}
+          direction={resolved}
+          onToggleDirection={toggleDirection}
+          knownStops={stopNames}
           active={active}
           isAuto={segment.id === auto?.id}
         />
@@ -131,11 +162,17 @@ interface LoadState {
 
 function SegmentView({
   segment,
+  baseSegment,
+  direction,
+  onToggleDirection,
   knownStops,
   active,
   isAuto,
 }: {
   segment: CommuteSegment;
+  baseSegment: CommuteSegment;
+  direction: DirectionResult;
+  onToggleDirection: () => void;
   knownStops: Record<StopId, Stop>;
   active: boolean;
   isAuto: boolean;
@@ -190,11 +227,25 @@ function SegmentView({
         <View style={{ flex: 1 }}>
           <Muted>
             {isAuto ? '지금 시간대 구간 · ' : ''}
-            {describeSchedule(segment)} · 최대 대기 {segment.maxWaitMin}분
+            {describeSchedule(baseSegment)} · 최대 대기 {segment.maxWaitMin}분
           </Muted>
         </View>
         <Button title="새로고침" kind="plain" onPress={() => load(true)} disabled={loading} />
       </View>
+      {direction.reason !== 'off' ? (
+        <Card>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+            <View style={{ flex: 1, paddingRight: 8 }}>
+              <Text style={{ fontSize: 15, fontWeight: '700', color: colors.text }}>
+                {direction.direction === 'forward' ? '정방향' : '반대 방향'} · {stopLabel(segment.fromStopIds, knownStops)} →{' '}
+                {stopLabel(segment.toStopIds, knownStops)}
+              </Text>
+              <Muted>자동 전환: {direction.explain}</Muted>
+            </View>
+            <Button title="⇄ 방향 바꾸기" kind="plain" onPress={onToggleDirection} />
+          </View>
+        </Card>
+      ) : null}
       {!state ? <Loading /> : null}
       {state?.errors.map((e) => <ErrorText key={e}>{e}</ErrorText>)}
 
@@ -274,4 +325,10 @@ function CandidateRow({ c, stopName }: { c: Candidate; stopName: (id: StopId) =>
       </Muted>
     </View>
   );
+}
+
+/** 정류장 목록을 "서면역.서면지하상가 외 2곳" 형태로 (같은 이름은 한 번만) */
+function stopLabel(ids: StopId[], stops: Record<StopId, Stop>): string {
+  const names = [...new Set(ids.map((id) => stops[id]?.name ?? id))];
+  return names.length > 1 ? `${names[0]} 외 ${names.length - 1}곳` : names[0] ?? '-';
 }

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Modal, Pressable, ScrollView, Share, Text, TextInput, View } from 'react-native';
-import type { CommuteSegment, Stop, StopId } from '@bus-s/core';
+import type { CommuteSegment, Schedule, Stop, StopId } from '@bus-s/core';
 import { Button, Card, Chip, colors, ErrorText, Muted, SectionTitle, styles } from '../components/ui';
 import { DEFAULT_MAX_WAIT_MIN, DEFAULT_WALK_MIN } from '../config';
 import { DAY_LABELS, describeSchedule, isValidTime } from '../lib/schedule';
@@ -95,6 +95,7 @@ function emptySegment(): CommuteSegment {
     schedule: { days: [1, 2, 3, 4, 5], start: '07:00', end: '09:00' },
     maxWaitMin: DEFAULT_MAX_WAIT_MIN,
     walkMin: {},
+    reverse: DEFAULT_REVERSE,
   };
 }
 
@@ -190,6 +191,10 @@ function SegmentEditor({
     if (seg.schedule && (!isValidTime(seg.schedule.start) || !isValidTime(seg.schedule.end)))
       return setError('시간은 HH:MM 형식으로 입력하세요 (예: 07:30)');
     if (seg.schedule && seg.schedule.days.length === 0) return setError('요일을 하나 이상 고르세요');
+    const rs = seg.reverse?.enabled ? seg.reverse.schedule : null;
+    if (rs && (!isValidTime(rs.start) || !isValidTime(rs.end)))
+      return setError('반대 방향 시간은 HH:MM 형식으로 입력하세요 (예: 18:00)');
+    if (rs && rs.days.length === 0) return setError('반대 방향 요일을 하나 이상 고르세요');
     if (!(seg.maxWaitMin > 0)) return setError('최대 대기시간을 입력하세요');
     const routeFilter = routeText
       .split(/[,\s]+/)
@@ -227,6 +232,7 @@ function SegmentEditor({
   };
 
   const schedule = seg.schedule;
+  const reverse = seg.reverse;
 
   return (
     <ScrollView contentContainerStyle={{ padding: 16 }} keyboardShouldPersistTaps="handled">
@@ -249,48 +255,49 @@ function SegmentEditor({
       <TextInput style={styles.input} placeholder="예: 83, 1001" value={routeText} onChangeText={setRouteText} />
 
       <SectionTitle>자동 선택 시간대</SectionTitle>
+      <ScheduleEditor
+        value={schedule}
+        defaultValue={emptySegment().schedule!}
+        toggleLabel="시간대 사용"
+        emptyText="시간대 없이 홈에서 직접 골라 씁니다."
+        onChange={(next) => update({ schedule: next })}
+      />
+
+      <SectionTitle>출발·도착 자동 전환</SectionTitle>
       <Card>
         <View style={[styles.row, { flexWrap: 'wrap' }]}>
-          <Chip label="시간대 사용" active={!!schedule} onPress={() => update({ schedule: schedule ? null : emptySegment().schedule })} />
+          <Chip
+            label="반대 방향도 추천 (예: 퇴근)"
+            active={!!reverse?.enabled}
+            onPress={() => update({ reverse: { ...(reverse ?? DEFAULT_REVERSE), enabled: !reverse?.enabled } })}
+          />
         </View>
-        {schedule ? (
+        {reverse?.enabled ? (
           <>
-            <View style={[styles.row, { flexWrap: 'wrap', marginTop: 4 }]}>
-              {DAY_LABELS.map((label, d) => (
-                <Chip
-                  key={label}
-                  label={label}
-                  active={schedule.days.includes(d)}
-                  onPress={() =>
-                    update({
-                      schedule: {
-                        ...schedule,
-                        days: schedule.days.includes(d) ? schedule.days.filter((x) => x !== d) : [...schedule.days, d].sort(),
-                      },
-                    })
-                  }
-                />
-              ))}
-            </View>
-            <View style={[styles.row, { gap: 8, marginTop: 4 }]}>
+            <Muted>
+              도착 정류장 근처(길 건너편 포함)에서 타서 출발 정류장 쪽으로 가는 버스를 자동으로 찾습니다. 현재 위치가 도착지
+              근처이거나 아래 시간대면 반대 방향으로 바뀌고, 그 밖에는 오전 정방향·오후 반대 방향입니다. 홈에서 직접 바꿀 수도
+              있습니다.
+            </Muted>
+            <ScheduleEditor
+              value={reverse.schedule}
+              defaultValue={DEFAULT_REVERSE.schedule!}
+              toggleLabel="반대 방향 시간대 사용"
+              emptyText="시간대 없이 위치·오전/오후로만 판단합니다."
+              onChange={(next) => update({ reverse: { ...reverse, schedule: next } })}
+            />
+            <View style={[styles.row, { gap: 4, marginTop: 8 }]}>
+              <Muted>반대 방향 출발 정류장까지 도보</Muted>
               <TextInput
-                style={[styles.input, { width: 80, textAlign: 'center' }]}
-                value={schedule.start}
-                onChangeText={(start) => update({ schedule: { ...schedule, start } })}
-                placeholder="07:00"
+                style={[styles.input, { width: 48, paddingVertical: 4, textAlign: 'center' }]}
+                keyboardType="number-pad"
+                value={String(reverse.walkMin ?? 0)}
+                onChangeText={(t) => update({ reverse: { ...reverse, walkMin: Number(t.replace(/\D/g, '')) || 0 } })}
               />
-              <Text>~</Text>
-              <TextInput
-                style={[styles.input, { width: 80, textAlign: 'center' }]}
-                value={schedule.end}
-                onChangeText={(end) => update({ schedule: { ...schedule, end } })}
-                placeholder="09:00"
-              />
+              <Muted>분</Muted>
             </View>
           </>
-        ) : (
-          <Muted>시간대 없이 홈에서 직접 골라 씁니다.</Muted>
-        )}
+        ) : null}
       </Card>
 
       <SectionTitle>최대 대기시간 (분)</SectionTitle>
@@ -320,5 +327,70 @@ function SegmentEditor({
         </View>
       </Modal>
     </ScrollView>
+  );
+}
+
+const DEFAULT_REVERSE: NonNullable<CommuteSegment['reverse']> = {
+  enabled: true,
+  schedule: { days: [1, 2, 3, 4, 5], start: '18:00', end: '20:00' },
+  walkMin: 0,
+};
+
+/** 요일·시간대 편집 (정방향·반대 방향 공용) */
+function ScheduleEditor({
+  value,
+  defaultValue,
+  toggleLabel,
+  emptyText,
+  onChange,
+}: {
+  value: Schedule | null;
+  defaultValue: Schedule;
+  toggleLabel: string;
+  emptyText: string;
+  onChange: (next: Schedule | null) => void;
+}) {
+  return (
+    <Card>
+      <View style={[styles.row, { flexWrap: 'wrap' }]}>
+        <Chip label={toggleLabel} active={!!value} onPress={() => onChange(value ? null : defaultValue)} />
+      </View>
+      {value ? (
+        <>
+          <View style={[styles.row, { flexWrap: 'wrap', marginTop: 4 }]}>
+            {DAY_LABELS.map((label, d) => (
+              <Chip
+                key={label}
+                label={label}
+                active={value.days.includes(d)}
+                onPress={() =>
+                  onChange({
+                    ...value,
+                    days: value.days.includes(d) ? value.days.filter((x) => x !== d) : [...value.days, d].sort(),
+                  })
+                }
+              />
+            ))}
+          </View>
+          <View style={[styles.row, { gap: 8, marginTop: 4 }]}>
+            <TextInput
+              style={[styles.input, { width: 80, textAlign: 'center' }]}
+              value={value.start}
+              onChangeText={(start) => onChange({ ...value, start })}
+              placeholder="07:00"
+            />
+            <Text>~</Text>
+            <TextInput
+              style={[styles.input, { width: 80, textAlign: 'center' }]}
+              value={value.end}
+              onChangeText={(end) => onChange({ ...value, end })}
+              placeholder="09:00"
+            />
+          </View>
+        </>
+      ) : (
+        <Muted>{emptyText}</Muted>
+      )}
+    </Card>
   );
 }

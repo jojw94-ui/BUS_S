@@ -159,7 +159,15 @@ export function recommend(input: RecommendInput): Recommendation {
   }
 
   pairs.sort((a, b) => compareCandidates(a.first, b.first));
-  const candidates = pairs.map((p) => p.first);
+  // 같은 노선은 가장 좋은 출발 정류장 하나만 남긴다
+  // (출발 정류장을 여러 곳 넣으면 같은 노선이 돌아가는 긴 경로로 중복해 나오기 때문)
+  const seenRoutes = new Set<string>();
+  const kept = pairs.filter((p) => {
+    if (seenRoutes.has(p.first.routeId)) return false;
+    seenRoutes.add(p.first.routeId);
+    return true;
+  });
+  const candidates = kept.map((p) => p.first);
 
   if (candidates.length === 0) {
     let reason: string;
@@ -174,7 +182,7 @@ export function recommend(input: RecommendInput): Recommendation {
   }
 
   const best = candidates[0];
-  const next = pairs[0].next;
+  const next = kept[0].next;
   const waitForNext =
     next &&
     next.congestion.level < best.congestion.level &&

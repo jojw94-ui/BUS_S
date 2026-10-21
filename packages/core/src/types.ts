@@ -97,6 +97,13 @@ export interface CongestionEstimate {
   estimated: true;
 }
 
+/** 요일·시간대. days: 0=일 ~ 6=토, start/end: "HH:MM" (자정을 넘을 수 있음) */
+export interface Schedule {
+  days: number[];
+  start: string;
+  end: string;
+}
+
 /** 출퇴근 구간 설정 (앱 기기 내 저장) */
 export interface CommuteSegment {
   id: string;
@@ -105,11 +112,28 @@ export interface CommuteSegment {
   toStopIds: StopId[];
   /** 비어 있으면 자동(후보 전부) */
   routeFilter: string[];
-  /** 0=일 ~ 6=토 */
-  schedule: { days: number[]; start: string; end: string } | null;
+  schedule: Schedule | null;
   maxWaitMin: number;
   /** 출발 정류장별 도보시간(분) */
   walkMin: Record<StopId, number>;
+  /**
+   * 반대 방향 자동 전환 (예: 출근 구간 하나로 퇴근도 추천). 없으면 끔.
+   * 반대 방향의 정류장은 원래 도착/출발 정류장 근처(길 건너편 포함)에서 자동으로 찾는다.
+   */
+  reverse?: {
+    enabled: boolean;
+    /** 반대 방향을 자동 선택할 시간대 (예: 평일 18:00~20:00) */
+    schedule: Schedule | null;
+    /** 반대 방향 출발 정류장(= 원래 도착지 근처)까지 도보시간(분) */
+    walkMin?: number;
+  };
+}
+
+export type Direction = 'forward' | 'reverse';
+
+export interface LatLng {
+  lat: number;
+  lng: number;
 }
 
 /** 추천 기준값 — 기본값은 core에서 제공, 앱 설정으로 덮어씀 */
