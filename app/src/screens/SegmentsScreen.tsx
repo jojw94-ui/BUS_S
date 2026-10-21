@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Modal, Pressable, ScrollView, Share, Text, TextInput, View } from 'react-native';
 import type { CommuteSegment, Schedule, Stop, StopId } from '@bus-s/core';
+import { ApiKeySettings } from '../components/ApiKeySettings';
 import { Button, Card, Chip, colors, ErrorText, Muted, SectionTitle, styles } from '../components/ui';
 import { DEFAULT_MAX_WAIT_MIN, DEFAULT_WALK_MIN } from '../config';
 import { DAY_LABELS, describeSchedule, isValidTime } from '../lib/schedule';
@@ -73,6 +74,9 @@ export function SegmentsScreen({
         />
         <Button title="JSON 가져오기" kind="plain" style={{ flex: 1 }} onPress={() => setImportOpen(true)} />
       </View>
+      <SectionTitle>API 키</SectionTitle>
+      <ApiKeySettings />
+
       <ImportModal
         visible={importOpen}
         onClose={() => setImportOpen(false)}

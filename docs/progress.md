@@ -31,3 +31,11 @@
 - 추천 후보에서 같은 노선은 가장 좋은 출발 정류장 하나만 남김
 - 앱: 홈에 방향 표시 + "⇄ 방향 바꾸기", 구간 설정에 반대 방향 시간대·도보시간
 - 검증: core 테스트 54개, 웹에서 시간대·GPS(부산역 좌표)·수동 전환 확인
+
+## 2026-10-21 — API 키 입력 (B안), APK 빌드
+- 앱 [구간 설정] 탭 아래 "API 키": 각자 공공데이터포털 키를 넣으면 그 키로 호출 (없으면 앱에 들어 있는 키)
+  - Encoding/Decoding 키 모두 허용, 저장 전 실제 API 로 확인, 틀린 키는 포털 사유("등록되지 않은 서비스키") 표시
+- APK: `powershell -ExecutionPolicy Bypass -File app\scripts\apk\build-apk.ps1` → `dist\BUS_S-<버전>-arm64.apk`
+  - `-NoBuiltinKey`: 내 키를 넣지 않은 APK (다른 사람용), `-Clean`: 네이티브 프로젝트 재생성
+  - 툴체인: %LOCALAPPDATA%\bus-s-toolchain (JDK 17, Android SDK, 관리자 권한 불필요)
+  - 이 PC는 Windows 스마트 앱 컨트롤이 hermesc.exe 를 막아서 바이트코드 변환 없이 JS 그대로 포함 (hermesc-passthrough)

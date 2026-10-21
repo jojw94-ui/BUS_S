@@ -6,15 +6,29 @@ import { BimsError, parseBimsItems, type XmlItem } from './xml';
 
 const BASE_URL = 'https://apis.data.go.kr/6260000/BusanBIMS';
 
+/** 앱에 들어 있는 키 (app/.env → 빌드 시 포함). 다른 사람에게 줄 APK 는 비워서 빌드할 수 있다. */
+const BUILTIN_KEY = process.env.EXPO_PUBLIC_BUSAN_BIMS_API_KEY || null;
+/** 사용자가 설정에서 입력한 키 — 앱 시작 시 저장소에서 읽어 setUserApiKey 로 넣는다 */
+let userKey: string | null = null;
+
+export function setUserApiKey(key: string | null): void {
+  userKey = key;
+}
+
+/** 지금 쓰는 키의 출처 */
+export function apiKeySource(): 'user' | 'builtin' | 'none' {
+  return userKey ? 'user' : BUILTIN_KEY ? 'builtin' : 'none';
+}
+
 function apiKey(): string {
-  const key = process.env.EXPO_PUBLIC_BUSAN_BIMS_API_KEY;
-  if (!key) throw new BimsError('API 키가 없습니다. app/.env 에 EXPO_PUBLIC_BUSAN_BIMS_API_KEY 를 넣어 주세요.');
+  const key = userKey ?? BUILTIN_KEY;
+  if (!key) throw new BimsError('API 키가 없습니다. [구간 설정] 탭 아래 "API 키"에서 공공데이터포털 인증키를 입력하세요.');
   return key;
 }
 
-async function call(path: string, params: Record<string, string>): Promise<XmlItem[]> {
+async function call(path: string, params: Record<string, string>, key: string = apiKey()): Promise<XmlItem[]> {
   // Decoding 키를 쓰므로 serviceKey 를 직접 인코딩한다.
-  const query = Object.entries({ serviceKey: apiKey(), ...params })
+  const query = Object.entries({ serviceKey: key, ...params })
     .map(([k, v]) => `${k}=${encodeURIComponent(v)}`)
     .join('&');
   let res: Response;
@@ -23,8 +37,17 @@ async function call(path: string, params: Record<string, string>): Promise<XmlIt
   } catch {
     throw new BimsError('네트워크에 연결할 수 없습니다');
   }
-  if (!res.ok) throw new BimsError(`API 요청 실패 (HTTP ${res.status})`);
-  return parseBimsItems(await res.text());
+  const text = await res.text();
+  if (!res.ok) {
+    // 인증 오류(등록되지 않은 키 등)는 HTTP 403 과 함께 사유가 담긴 XML 이 온다 — 그 사유를 보여 준다
+    try {
+      parseBimsItems(text);
+    } catch (e) {
+      if (e instanceof BimsError && e.message.startsWith('API 오류')) throw e;
+    }
+    throw new BimsError(`API 요청 실패 (HTTP ${res.status})`);
+  }
+  return parseBimsItems(text);
 }
 
 const num = (v: string | undefined): number => (v === undefined || v === '' ? NaN : Number(v));
@@ -155,3 +178,14 @@ export function getRoute(routeId: RouteId): Promise<Route | null> {
 }
 
 export { BimsError };
+
+// ── API 키 확인 ─────────────────────────────────────────────────
+
+/**
+ * 키가 실제로 동작하는지 정류소 1곳(서면역.서면지하상가, ARS 05711)을 조회해 확인한다. 캐시를 쓰지 않는다.
+ * 실패하면 BimsError (예: 등록되지 않은 키 — 포털 승인 직후에는 1~2시간 뒤부터 동작).
+ */
+export async function testApiKey(key: string): Promise<void> {
+  const items = await call('/busStopList', { arsno: '05711', pageNo: '1', numOfRows: '1' }, key);
+  if (items.length === 0) throw new BimsError('응답은 왔지만 정류장 정보가 비어 있습니다');
+}

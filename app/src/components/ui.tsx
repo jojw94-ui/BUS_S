@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View, type TextStyle, type ViewStyle } from 'react-native';
 
 export const colors = {
   bg: '#F5F6F8',
@@ -51,8 +51,8 @@ export function SectionTitle({ children }: { children: ReactNode }) {
   return <Text style={styles.section}>{children}</Text>;
 }
 
-export function Muted({ children }: { children: ReactNode }) {
-  return <Text style={styles.muted}>{children}</Text>;
+export function Muted({ children, style }: { children: ReactNode; style?: TextStyle }) {
+  return <Text style={[styles.muted, style]}>{children}</Text>;
 }
 
 export function ErrorText({ children }: { children: ReactNode }) {

@@ -7,6 +7,8 @@ import { colors } from './src/components/ui';
 import { HomeScreen } from './src/screens/HomeScreen';
 import { SegmentsScreen } from './src/screens/SegmentsScreen';
 import { StopSearchScreen } from './src/screens/StopSearchScreen';
+import { setUserApiKey } from './src/api/bims';
+import { loadUserApiKey } from './src/storage/apiKey';
 import { loadKnownStops, loadSegments, rememberStops, saveSegments } from './src/storage/segments';
 
 type Tab = 'home' | 'segments' | 'search';
@@ -22,7 +24,9 @@ export default function App() {
   const [knownStops, setKnownStops] = useState<Record<StopId, Stop>>({});
 
   const reload = useCallback(async () => {
-    const [segs, stops] = await Promise.all([loadSegments(), loadKnownStops()]);
+    const [segs, stops, key] = await Promise.all([loadSegments(), loadKnownStops(), loadUserApiKey()]);
+    // 화면(=첫 API 호출)이 뜨기 전에 사용자 키를 넣는다
+    setUserApiKey(key);
     setSegments(segs);
     setKnownStops(stops);
   }, []);
